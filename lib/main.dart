@@ -67,7 +67,12 @@ class _ControlDeckScreenState extends State<ControlDeckScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenBg = widget.isDark ? const Color(0xFF1E1F29) : const Color(0xFFE0E5EC);
+    // MILESTONE 2: Interactive Feedback — 80% power overload threshold.
+    final bool isOverload = powerLevel > 80;
+
+    final screenBg = isOverload
+        ? (widget.isDark ? const Color(0xFF3A1712) : const Color(0xFFFBE6DF))
+        : (widget.isDark ? const Color(0xFF1E1F29) : const Color(0xFFE0E5EC));
     final cardBg = widget.isDark ? const Color(0xFF282A36) : Colors.white;
 
     return Scaffold(
