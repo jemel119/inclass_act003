@@ -1,121 +1,324 @@
 import 'package:flutter/material.dart';
 
+// ============================================================================
+// 1. MAIN ENTRY POINT
+// ============================================================================
+// Summary: Every Flutter app starts here. runApp() takes your root widget and
+// attaches it to the screen, kicking off the framework's build-and-render pipeline.
+// Reference: https://api.flutter.dev/flutter/widgets/runApp.html
 void main() {
-  runApp(const MyApp());
+  runApp(const TactileDeckApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+// ============================================================================
+// 2. ROOT APPLICATION WIDGET (Manages Global Theme State)
+// ============================================================================
+// Summary: A StatefulWidget that owns the single source of truth for light/dark
+// mode. MaterialApp reads isDarkMode to pick a theme, and onToggleTheme lets the
+// child screen flip it via a callback — no need to pass data back up manually.
+// Reference: https://docs.flutter.dev/cookbook/design/themes
+class TactileDeckApp extends StatefulWidget {
+  const TactileDeckApp({super.key});
 
-  // This widget is the root of your application.
+  @override
+  State<TactileDeckApp> createState() => _TactileDeckAppState();
+}
+
+class _TactileDeckAppState extends State<TactileDeckApp> {
+  // Global theme toggle variable (carried over from Activity 02!)
+  bool isDarkMode = true;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+      title: 'Cyber-Tactile Control Studio',
+      debugShowCheckedModeBanner: false,
+      // Apply Material 3 Dark or Light theme based on state
+      theme: isDarkMode
+          ? ThemeData.dark(useMaterial3: true)
+          : ThemeData.light(useMaterial3: true),
+      home: ControlDeckScreen(
+        isDark: isDarkMode,
+        // Callback function to toggle theme mode from child widget
+        onToggleTheme: () => setState(() => isDarkMode = !isDarkMode),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+// ============================================================================
+// 3. MAIN DASHBOARD SCREEN (Stateful Controller)
+// ============================================================================
+// Summary: The screen users actually see. Its State object holds totalTaps,
+// powerLevel, and systemStatus, and rebuilds the metrics card, status banner,
+// buttons, and slider every time setState() runs.
+// Reference: https://api.flutter.dev/flutter/material/Scaffold-class.html
+class ControlDeckScreen extends StatefulWidget {
+  final bool isDark;
+  final VoidCallback onToggleTheme;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  const ControlDeckScreen({
+    super.key,
+    required this.isDark,
+    required this.onToggleTheme,
+  });
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<ControlDeckScreen> createState() => _ControlDeckScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _ControlDeckScreenState extends State<ControlDeckScreen> {
+  // --- Mutable State Variables (Day 3 Core Concept!) ---
+  int totalTaps = 0; // Increments on every button press
+  double powerLevel = 65.0; // Controlled by the interactive slider
+  String systemStatus = "READY"; // Displays latest activated command
 
-  void _incrementCounter() {
+  // Helper method to update dashboard state upon button press
+  void _triggerAction(String actionName) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      totalTaps++;
+      systemStatus = "$actionName ACTIVATED";
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    // MILESTONE 2: Interactive Feedback — 80% power overload threshold.
+    // When powerLevel crosses 80%, the screen background shifts to a warning tone.
+    final bool isOverload = powerLevel > 80;
+
+    // Dynamic background color adapting to current theme
+    // (Overload check happens right where screenBg is already defined)
+    final screenBg = isOverload
+        ? (widget.isDark ? const Color(0xFF3A1712) : const Color(0xFFFBE6DF))
+        : (widget.isDark ? const Color(0xFF1E1F29) : const Color(0xFFE0E5EC));
+    final cardBg = widget.isDark ? const Color(0xFF282A36) : Colors.white;
+
     return Scaffold(
+      backgroundColor: screenBg,
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text(
+          "TACTILE CONTROL STUDIO",
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 18),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          // Theme Toggle Button in the AppBar
+          IconButton(
+            icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode),
+            tooltip: 'Toggle Theme',
+            onPressed: widget.onToggleTheme,
+          ),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text('You have pushed the button this many times:'),
+            // --- TOP STATUS METRICS CARD ---
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(widget.isDark ? 0.3 : 0.08),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // Total Taps Counter
+                  Column(
+                    children: [
+                      const Text("TOTAL TAPS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      const SizedBox(height: 4),
+                      Text("$totalTaps", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  // Vertical Divider Line
+                  Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.3)),
+                  // Energy / Power Level Indicator
+                  Column(
+                    children: [
+                      const Text("ENERGY LEVEL", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      const SizedBox(height: 4),
+                      Text("${powerLevel.toInt()}%", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Live System Status Banner
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              "STATUS: $systemStatus",
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.w600,
+                color: widget.isDark ? Colors.tealAccent : Colors.teal.shade700,
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // --- 2x2 GRID OF TACTILE 3D BUTTONS ---
+            // MILESTONE 1: Custom Theming & Persona — "Race Car Dashboard"
+            Wrap(
+              spacing: 20,
+              runSpacing: 20,
+              alignment: WrapAlignment.center,
+              children: [
+                TactileButton(
+                  icon: Icons.local_fire_department,
+                  label: "NITRO",
+                  accentColor: Colors.blueAccent,
+                  isDark: widget.isDark,
+                  onPressed: () => _triggerAction("NITRO BOOST"),
+                ),
+                TactileButton(
+                  icon: Icons.route,
+                  label: "DRIFT",
+                  accentColor: Colors.orangeAccent,
+                  isDark: widget.isDark,
+                  onPressed: () => _triggerAction("DRIFT MODE"),
+                ),
+                TactileButton(
+                  icon: Icons.whatshot,
+                  label: "BURNOUT",
+                  accentColor: Colors.deepOrangeAccent,
+                  isDark: widget.isDark,
+                  onPressed: () => _triggerAction("BURNOUT LAUNCH"),
+                ),
+                TactileButton(
+                  icon: Icons.build,
+                  label: "PIT STOP",
+                  accentColor: Colors.greenAccent,
+                  isDark: widget.isDark,
+                  onPressed: () => _triggerAction("PIT STOP SERVICE"),
+                ),
+              ],
+            ),
+            const SizedBox(height: 36),
+
+            // --- INTERACTIVE CALIBRATION SLIDER ---
+            Text(
+              "Power Calibration: ${powerLevel.toInt()}%",
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            Slider(
+              value: powerLevel,
+              min: 0,
+              max: 100,
+              activeColor: Colors.blueAccent,
+              inactiveColor: Colors.grey.withOpacity(0.3),
+              // setState updates powerLevel immediately during slider drag
+              onChanged: (newVal) => setState(() => powerLevel = newVal),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+// ============================================================================
+// 4. REUSABLE TACTILE 3D BUTTON WIDGET
+// ============================================================================
+// Summary: A self-contained StatefulWidget that tracks its own isPressed flag
+// and uses GestureDetector + two opposing BoxShadows to fake a physical
+// push-button depress-and-release effect — no external packages required.
+// Reference: https://api.flutter.dev/flutter/widgets/GestureDetector-class.html
+class TactileButton extends StatefulWidget {
+  final IconData icon; // Icon to display in center
+  final String label; // Button title text
+  final Color accentColor; // Active glow color
+  final bool isDark; // Light or Dark theme mode
+  final VoidCallback onPressed; // Action callback triggered on tap
+
+  const TactileButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.accentColor,
+    required this.isDark,
+    required this.onPressed,
+  });
+
+  @override
+  State<TactileButton> createState() => _TactileButtonState();
+}
+
+class _TactileButtonState extends State<TactileButton> {
+  // Local boolean state tracking whether button is currently being held down
+  bool isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine dynamic background and shadow colors
+    final baseColor = widget.isDark ? const Color(0xFF222430) : const Color(0xFFE0E5EC);
+    final darkShadow = widget.isDark ? Colors.black87 : const Color(0xFFA3B1C6);
+    final lightShadow = widget.isDark ? const Color(0xFF2F3244) : Colors.white;
+
+    return GestureDetector(
+      // 1. User touches button -> depress button
+      onTapDown: (_) => setState(() => isPressed = true),
+      // 2. User releases button -> restore position and fire callback
+      onTapUp: (_) {
+        setState(() => isPressed = false);
+        widget.onPressed();
+      },
+      // 3. User cancels touch -> restore position safely
+      onTapCancel: () => setState(() => isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100), // Smooth 100ms spring transition
+        width: 140,
+        height: 140,
+        decoration: BoxDecoration(
+          color: baseColor,
+          borderRadius: BorderRadius.circular(24),
+          // Dual opposing BoxShadows create the 3D Neomorphic depth effect
+          boxShadow: isPressed
+              ? [
+                  // Pressed (Sunken) Shadow Offsets
+                  BoxShadow(color: darkShadow.withOpacity(0.5), offset: const Offset(2, 2), blurRadius: 4),
+                  BoxShadow(color: lightShadow.withOpacity(0.5), offset: const Offset(-2, -2), blurRadius: 4),
+                ]
+              : [
+                  // Unpressed (Elevated) Shadow Offsets
+                  BoxShadow(color: darkShadow.withOpacity(0.7), offset: const Offset(8, 8), blurRadius: 16),
+                  BoxShadow(color: lightShadow.withOpacity(0.9), offset: const Offset(-8, -8), blurRadius: 16),
+                ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Dynamic Icon that changes size and glows on press
+            Icon(
+              widget.icon,
+              size: isPressed ? 40 : 46,
+              color: isPressed ? widget.accentColor : (widget.isDark ? Colors.white70 : Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            // Button Label
+            Text(
+              widget.label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 1.1,
+                color: isPressed ? widget.accentColor : (widget.isDark ? Colors.white54 : Colors.black54),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
